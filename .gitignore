@@ -1,0 +1,36 @@
+
+# Gradle
+.gradle/
+build/
+
+# IntelliJ / IDE
+.idea/
+*.iml
+.vscode/
+
+# Ollama and local AI models
+.ollama/
+models/
+ollama/
+*.gguf
+*.safetensors
+*.bin
+*.model
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+
+# Uploaded documents and data
+uploads/
+*.pdf
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

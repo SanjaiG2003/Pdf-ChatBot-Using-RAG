@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF RAG Assistant</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 19px;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            padding: 12px 22px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .question-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .question-area input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .answer {
+            white-space: pre-wrap;
+            line-height: 1.7;
+            margin-top: 20px;
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>PDF RAG Assistant</h1>
+    <p class="subtitle">Upload a PDF and ask questions about its contents</p>
+
+    <!-- PDF Upload -->
+    <div class="card">
+        <h2>1. Upload PDF</h2>
+
+        <input
+                type="file"
+                id="pdfFile"
+                accept=".pdf,application/pdf"
+        >
+
+        <button id="uploadButton" onclick="uploadPDF()">
+            Upload PDF
+        </button>
+
+        <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <!-- Ask Questions -->
+    <div class="card">
+        <h2>2. Ask a Question</h2>
+
+        <div class="question-area">
+            <input
+                    type="text"
+                    id="question"
+                    placeholder="Ask something about your PDF..."
+            >
+
+            <button id="askButton" onclick="askQuestion()">
+                Ask
+            </button>
+        </div>
+
+        <div id="askStatus" class="status"></div>
+
+        <div id="answer" class="answer">
+            Your answer will appear here.
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+    async function uploadPDF() {
+        const fileInput = document.getElementById("pdfFile");
+        const status = document.getElementById("uploadStatus");
+        const button = document.getElementById("uploadButton");
+
+        const file = fileInput.files[0];
+
+        if (!file) {
+            status.textContent = "Please select a PDF file.";
+            return;
+        }
+
+        if (file.type !== "application/pdf") {
+            status.textContent = "Only PDF files are allowed.";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        button.disabled = true;
+        status.textContent = "Uploading and processing PDF...";
+
+        try {
+            const response = await fetch("/api/documents/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Upload failed. HTTP " + response.status);
+            }
+
+            const data = await response.json();
+
+            status.textContent =
+                "Upload successful! File: " + data.file +
+                " | Pages: " + data.pages +
+                " | Chunks: " + data.chunks;
+
+        } catch (error) {
+            status.textContent = error.message;
+
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    async function askQuestion() {
+        const questionInput = document.getElementById("question");
+        const answer = document.getElementById("answer");
+        const status = document.getElementById("askStatus");
+        const button = document.getElementById("askButton");
+
+        const question = questionInput.value.trim();
+
+        if (!question) {
+            status.textContent = "Please enter a question.";
+            return;
+        }
+
+        button.disabled = true;
+        answer.textContent = "";
+        status.textContent = "Searching your documents...";
+
+        try {
+            const response = await fetch(
+                "/api/ask?question=" + encodeURIComponent(question)
+            );
+
+            if (!response.ok) {
+                throw new Error("Request failed. HTTP " + response.status);
+            }
+
+            const data = await response.json();
+
+            answer.textContent = data.answer;
+            status.textContent = "Answer generated.";
+
+        } catch (error) {
+            answer.textContent = "Unable to get an answer.";
+            status.textContent = error.message;
+
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    document.getElementById("question").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            askQuestion();
+        }
+    });
+
+</script>
+
+</body>
+</html>
